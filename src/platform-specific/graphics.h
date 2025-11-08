@@ -23,7 +23,7 @@ void drawChar(uint8_t x, uint8_t y, char c, uint8_t alt);
 void drawIcon(uint8_t x, uint8_t y, uint8_t icon);
 
 void drawShip(uint8_t size, uint8_t pos, bool hide);
-void drawLegendShip(uint8_t x, uint8_t y, uint8_t size, uint8_t status);
+void drawLegendShip(uint8_t player, uint8_t index, uint8_t size, uint8_t status);
 
 void drawGamefield(uint8_t quadrant, uint8_t *field);
 void drawGamefieldUpdate(uint8_t quadrant, uint8_t *gamefield, uint8_t attackPos, uint8_t blink);
@@ -35,7 +35,7 @@ void drawBlank(uint8_t x, uint8_t y);
 void drawSpace(uint8_t x, uint8_t y, uint8_t w);
 void drawLine(uint8_t x, uint8_t y, uint8_t w);
 void drawBox(uint8_t x, uint8_t y, uint8_t w, uint8_t h);
-void drawBoard();
+void drawBoard(uint8_t playerCount);
 
 // Call to save screen buffer for later restore. Returns false
 // if screen buffer not supported

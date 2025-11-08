@@ -268,7 +268,7 @@ void renderGameboard()
         redraw = true;
         skipAnim = true;
         resetScreen();
-        drawBoard();
+        drawBoard(clientState.game.playerCount);
         if (clientState.game.status >= STATUS_GAMESTART)
         {
             // Draw player's ships
@@ -352,14 +352,14 @@ void renderGameboard()
                     for (jj = 0; jj < 5; jj++)
                     {
                         pause(4);
-                        drawLegendShip(LEGEND_X, i * 6 + j + 1, shipSize[j], jj & 1);
+                        drawLegendShip(i, j, shipSize[j], jj & 1);
                     }
 
                     soundHit();
                 }
                 else
                 {
-                    drawLegendShip(LEGEND_X, i * 6 + j + 1, shipSize[j], clientState.game.players[i].shipsLeft[j]);
+                    drawLegendShip(i, j, shipSize[j], clientState.game.players[i].shipsLeft[j]);
                 }
             }
 

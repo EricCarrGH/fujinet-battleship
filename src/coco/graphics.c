@@ -23,14 +23,15 @@ extern unsigned char charset[];
 #define LEGEND_X 24
 
 extern char lastKey;
+static uint8_t fieldX = 0;
 int8_t highlightX = -1;
 bool inBorderScreen = false;
 uint8_t box_color = 0xff;
 uint16_t quadrant_offset[] = {
-    32 * 8 * 12 + 1,
-    32 * 8 * 1 + 1,
-    32 * 8 * 1 + 12,
-    32 * 8 * 12 + 12};
+    256U * 12 + 5,
+    256U * 1 + 5,
+    256U * 1 + 17,
+    256U * 12 + 17};
 
 // interrupt void resetFlagOnVsync(void)
 // {
@@ -131,29 +132,26 @@ void resetScreen()
     pcls(0);
 }
 
-void drawLegendShip(uint8_t x, uint8_t y, uint8_t size, uint8_t status)
+uint16_t legendShipOffset[] = {2, 1, 0, 256U * 5, 256U * 6 + 1};
+void drawLegendShip(uint8_t player, uint8_t index, uint8_t size, uint8_t status)
 {
-    uint8_t i, c = 0x0C;
-    if ((y - 1) % 6 == 0)
+    uint8_t *dest = SCREEN + fieldX + quadrant_offset[player];
+
+    if (player > 1 || (player > 0 && fieldX > 0))
     {
-        y = y * 8 + 1;
+        dest += 256 + 11;
     }
     else
     {
-        y = ((y - 1) / 6 * 6) * 8 + 3 + (y % 6) * 6;
+        dest += 256 - 4;
     }
-    for (i = 0; i < size; i++)
-    {
-        if (i == size - 1)
-            c = 0x0E;
-        hires_Draw(x++, y, 1, 6, ROP_CPY, &charset[(uint16_t)(c + 3 * status) << 3]);
-        c = 0x0D;
-    }
+    // 15684
+    drawShipInternal(dest + legendShipOffset[index], size, 1);
 }
 
 void drawGamefieldCursor(uint8_t quadrant, uint8_t x, uint8_t y, uint8_t *gamefield, uint8_t blink)
 {
-    uint8_t *src, *dest = SCREEN + quadrant_offset[quadrant] + (uint16_t)y * 256 + x;
+    uint8_t *src, *dest = SCREEN + quadrant_offset[quadrant] + fieldX + (uint16_t)y * 256 + x;
     uint8_t j, c = gamefield[y * 10 + x];
 
     if (blink)
@@ -176,12 +174,13 @@ void drawGamefieldCursor(uint8_t quadrant, uint8_t x, uint8_t y, uint8_t *gamefi
 uint8_t *srcBlank = &charset[(uint16_t)0x18 << 3];
 uint8_t *srcHit = &charset[(uint16_t)0x19 << 3];
 uint8_t *srcMiss = &charset[(uint16_t)0x1A << 3];
-uint8_t *srcHit2 = &charset[(uint16_t)0x1C << 3];
+uint8_t *srcHit2 = &charset[(uint16_t)0x1B << 3];
+uint8_t *srcHitLegend = &charset[(uint16_t)0x1C << 3];
 
 // Updates the gamefield display at attackPos
 void drawGamefieldUpdate(uint8_t quadrant, uint8_t *gamefield, uint8_t attackPos, uint8_t blink)
 {
-    uint8_t *src, *dest = SCREEN + quadrant_offset[quadrant] + (uint16_t)(attackPos / 10) * 256 + (attackPos % 10);
+    uint8_t *src, *dest = SCREEN + quadrant_offset[quadrant] + fieldX + (uint16_t)(attackPos / 10) * 256 + (attackPos % 10);
     uint8_t j, c = gamefield[attackPos];
 
     if (c == FIELD_ATTACK)
@@ -206,11 +205,9 @@ void drawGamefieldUpdate(uint8_t quadrant, uint8_t *gamefield, uint8_t attackPos
 
 void drawGamefield(uint8_t quadrant, uint8_t *field)
 {
-    uint8_t *dest = SCREEN + quadrant_offset[quadrant];
+    uint8_t *dest = SCREEN + quadrant_offset[quadrant] + fieldX;
     uint8_t y, x, j;
     uint8_t *src;
-
-    // 13564
 
     for (y = 0; y < 10; ++y)
     {
@@ -234,36 +231,16 @@ void drawGamefield(uint8_t quadrant, uint8_t *field)
     }
 }
 
-void drawShip(uint8_t size, uint8_t pos, bool hide)
+void drawShipInternal(uint8_t *dest, uint8_t size, uint8_t delta)
 {
-    uint8_t x, y, i, j, c = 0x12, delta = 0;
+    uint8_t i, j, c = 0x12;
     uint8_t *src;
-    // 100 bytes added for speed improvements
-    if (pos > 99)
-    {
-        delta = 1; // 1=vertical, 0=horizontal
-        pos -= 100;
+    if (delta)
         c = 0x17;
-    }
-
-    x = (pos % 10) + 1;
-    y = ((pos / 10) + 12) * 8;
-
-    if (hide)
-    {
-        if (!delta)
-            hires_Mask(x, y, size, 8, 0b10101010);
-        else
-            hires_Mask(x, y, 1, size * 8, 0b10101010);
-        return;
-    }
-
-    uint8_t *dest = SCREEN + (uint16_t)y * 32 + x;
-
     for (i = 0; i < size; i++)
     {
         // hires_putc(x, y, ROP_CPY, c);
-        // Faster version of above
+        // Faster version of above, but uses ~100 bytes
         src = &charset[(uint16_t)c << 3];
         for (j = 0; j < 8; ++j)
         {
@@ -284,6 +261,32 @@ void drawShip(uint8_t size, uint8_t pos, bool hide)
                 c = 0x14;
         }
     }
+}
+void drawShip(uint8_t size, uint8_t pos, bool hide)
+{
+    uint8_t x, y, i, j, delta = 0;
+    uint8_t *src;
+    // 100 bytes added for speed improvements
+    if (pos > 99)
+    {
+        delta = 1; // 1=vertical, 0=horizontal
+        pos -= 100;
+    }
+
+    x = (pos % 10) + fieldX + 5;
+    y = ((pos / 10) + 12) * 8;
+
+    if (hide)
+    {
+        if (!delta)
+            hires_Mask(x, y, size, 8, 0b10101010);
+        else
+            hires_Mask(x, y, 1, size * 8, 0b10101010);
+        return;
+    }
+
+    uint8_t *dest = SCREEN + (uint16_t)y * 32 + x;
+    drawShipInternal(dest, size, delta);
 }
 
 void drawIcon(unsigned char x, unsigned char y, unsigned char icon)
@@ -306,29 +309,95 @@ void drawSpace(unsigned char x, unsigned char y, unsigned char w)
     hires_Mask(x, y * 8, w, 8, 0);
 }
 
-void drawBoard()
+void drawBoard(uint8_t playerCount)
 {
-    // Corners
-    hires_putc(0, 0, ROP_CPY, 0x5C);
-    hires_putc(22, 0, ROP_CPY, 0x5D);
-    hires_putc(0, 8 * 22, ROP_CPY, 0x5E);
-    hires_putc(22, 8 * 22, ROP_CPY, 0x5F);
+    uint8_t i, x, y, ix, ox, left = 1, fy, eh, drawEdge, drawX, drawCorner;
 
-    // Blue background
-    hires_Mask(1, 8, 21, 8 * 22, 0b10101010);
+    uint16_t pos;
+    // Center layout
+    fieldX = playerCount > 2 ? 0 : 6;
 
-    // Middle lines
-    hires_Draw(1, 8 * 11, 21, 8, ROP_CPY, &charset[0x29 << 3]);
-    hires_Draw(11, 8, 1, 8 * 21, ROP_CPY, &charset[0x28 << 3]);
+    for (i = 0; i < playerCount; i++)
+    {
+        pos = fieldX + quadrant_offset[i];
+        x = pos % 32;
+        y = pos / 32;
 
-    // Center cross
-    hires_putc(11, 8 * 11, ROP_CPY, 0x5B);
+        // right and left drawers
+        if (i > 1 || playerCount == 2 && i > 0)
+        {
+            ox = x - 1;
+            ix = x + 10;
+            left = 0;
+            drawX = ix + 1;
+            drawEdge = drawX + 3;
+            drawCorner = 0xd;
+        }
+        else
+        {
+            ix = x - 1;
+            ox = x + 10;
+            drawX = ix - 3;
+            drawEdge = drawX - 1;
+            drawCorner = 0xc;
+        }
+        if (i == 1 || i == 2)
+        {
+            // Name badge corners
+            hires_putc(x - 1, y - 8, ROP_CPY, 0x5C);
+            hires_putc(x + 10, y - 8, ROP_CPY, 0x5D);
 
-    // Edges lines
-    hires_Draw(1, 0, 21, 8, ROP_CPY, &charset[0x29 << 3]);
-    hires_Draw(1, 8 * 22, 21, 8, ROP_CPY, &charset[0x29 << 3]);
-    hires_Draw(0, 8, 1, 8 * 21, ROP_CPY, &charset[0x28 << 3]);
-    hires_Draw(22, 8, 1, 8 * 21, ROP_CPY, &charset[0x28 << 3]);
+            // Name badge
+            hires_Mask(x, y - 8, 10, 8, 0b01010101);
+            fy = y + 80;
+        }
+        else
+        {
+            // Name badge corners
+            hires_putc(x - 1, y + 80, ROP_CPY, 0x5E);
+            hires_putc(x + 10, y + 80, ROP_CPY, 0x5F);
+
+            // Name badge
+            hires_Mask(x, y + 80, 10, 8, 0b01010101);
+            fy = y - 8;
+        }
+
+        // Outside edge
+        hires_Draw(ox, y, 1, 80, ROP_CPY, &charset[(uint16_t)(left ? 0x23 : 0x22) << 3]);
+
+        // Inner edge (adjacent to ships drawer)
+        hires_Draw(ix, y + 8, 1, 64, ROP_CPY, &charset[(uint16_t)(left ? 0x01 : 0x04) << 3]);
+
+        // Inner edge + ship drawer
+        hires_putc(ix, y, ROP_CPY, left ? 0x24 : 0x25);
+        hires_putc(ix, y + 72, ROP_CPY, left ? 0x24 : 0x25);
+
+        // Blue gamefield
+        hires_Mask(x, y, 10, 80, 0b10101010);
+
+        // Far edge
+        if (i)
+        {
+            if (i != 2)
+                eh = 8;
+            else
+                eh = 3;
+
+            hires_Draw(x - 1, fy, 1, eh, ROP_CPY, &charset[(uint16_t)0x02 << 3]);
+            hires_Draw(x + 10, fy, 1, eh, ROP_CPY, &charset[(uint16_t)0x03 << 3]);
+            hires_Draw(x, fy, 10, eh, ROP_CPY, &charset[(uint16_t)0x29 << 3]);
+        }
+
+        // Ship drawer edges
+        hires_Draw(drawX, y, 3, 8, ROP_CPY, &charset[(uint16_t)0x11 << 3]);
+        hires_Draw(drawX, y + 72, 3, 8, ROP_CPY, &charset[(uint16_t)0x11 << 3]);
+        hires_Draw(drawEdge, y + 8, 1, 64, ROP_CPY, &charset[(uint16_t)0x10 << 3]);
+        hires_putc(drawEdge, y, ROP_CPY, drawCorner);
+        hires_putc(drawEdge, y + 72, ROP_CPY, drawCorner + 2);
+
+        // Fill in the drawer
+        hires_Mask(drawX, y + 8, 3, 64, 0b10101010);
+    }
 }
 
 void drawLine(unsigned char x, unsigned char y, unsigned char w)
