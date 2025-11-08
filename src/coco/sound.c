@@ -64,8 +64,9 @@ void soundFujitzee()
 
 void soundMyTurn()
 {
-    tone(40, 1, 40);
-    tone(40, 2, 0);
+    setTimer(0);
+    tone(40, 1, 30);
+    tone(40, 1, 0);
 }
 
 void soundGameDone()
@@ -92,9 +93,18 @@ void soundRollButton()
 void soundCursor()
 {
     static int i;
-    tone(0, 0, 0);
-    tone(0, 0, 0);
-    tone(0, 0, 0);
+    // tone(100, 0, 0);
+    // tone(120, 0, 0);
+    // tone(90, 0, 0);
+    // tone(10, 0, 0);
+    // tone(8, 0, 0);
+
+    tone(40, 0, 1);
+    tone(70, 0, 2);
+    tone(10, 0, 3);
+    // tone(10, 0, 0);
+    //  tone(0, 0, 0);
+    //  tone(0, 0, 0);
 }
 
 void soundPlaceShip()
@@ -102,14 +112,6 @@ void soundPlaceShip()
     uint8_t i;
     for (i = 0; i < 10; i++)
         tone((i * 13 + 8) % 100, 0, 0);
-}
-
-void soundRelease()
-{
-    tone(10, 0, 1);
-    tone(10, 0, 2);
-    tone(10, 0, 3);
-    tone(10, 0, 0);
 }
 
 void soundTick()
@@ -172,10 +174,8 @@ void soundAttack()
     {
         c = rand() % i;
         *(uint8_t *)0xFF20 = c;
-        *(uint8_t *)0xFF20 = c - 1;
-        c = c & i;
-
-        *(uint8_t *)0xFF20 = c + 1;
+        *(uint8_t *)0xFF20 = (c & c) - 1;
+        *(uint8_t *)0xFF20 = (c & c) + 1;
     }
     *(uint8_t *)0xFF20 = 0;
 }
@@ -191,10 +191,10 @@ void soundHit()
     for (i = 240; i > 0; --i)
     {
         c = rand() % i;
-        *(uint8_t *)0xFF20 = c;
-        *(uint8_t *)0xFF20 = c - 1;
-        *(uint8_t *)0xFF20 = c + 1;
-        *(uint8_t *)0xFF20 = c + 10;
+        *(uint8_t *)0xFF20 = c & c;
+        *(uint8_t *)0xFF20 = c & c - 1;
+        *(uint8_t *)0xFF20 = c & c + 1;
+        *(uint8_t *)0xFF20 = c & c + 10;
     }
 }
 

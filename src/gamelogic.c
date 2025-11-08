@@ -42,8 +42,6 @@ void processStateChange()
         break;
     }
 
-    handleAnimation();
-
     state.prevStatus = clientState.game.status;
     state.prevPlayerStatus = clientState.game.playerStatus;
     state.prevPlayerCount = clientState.game.playerCount;
@@ -434,10 +432,6 @@ bool testShip(uint8_t shipSize, uint8_t pos)
     return true;
 }
 
-void handleAnimation()
-{
-}
-
 void processInput()
 {
     readCommonInput();
@@ -487,13 +481,14 @@ void waitOnPlayerMove()
     bool foundValidLocation;
     uint8_t waitCount, frames, i, moved;
     uint16_t jifsPerSecond, maxJifs;
-    soundMyTurn();
+
     resetTimer();
 
     // Determine max jiffies for PAL and NTS
     jifsPerSecond = getJiffiesPerSecond();
     maxJifs = jifsPerSecond * clientState.game.moveTime;
-    waitCount = frames = moved = 0;
+    waitCount = 0;
+    moved = frames = 9;
 
     // Move selection loop
     while (clientState.game.moveTime > 0)
@@ -509,7 +504,12 @@ void waitOnPlayerMove()
 
         if (moved)
         {
-            soundCursor();
+            // Play "my turn" sound on first move
+            if (moved == 9)
+                soundMyTurn();
+            else
+                soundCursor();
+
             moved = 0;
         }
 

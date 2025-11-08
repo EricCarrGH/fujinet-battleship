@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <coco.h>
 
-char lastKey = 0;
+static char lastKey = 0;
 
 unsigned char kbhit(void)
 {

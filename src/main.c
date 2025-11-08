@@ -108,12 +108,6 @@ void main(void)
             }
         }
 
-        // Animation and input
-        if (failedApiCalls == 0)
-        {
-            handleAnimation();
-        }
-
         processInput();
     }
 }

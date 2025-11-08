@@ -78,8 +78,6 @@ void readCommonInput()
         }
     }
 
-    input.key = 0;
-
     if (!kbhit())
         return;
 
