@@ -1,37 +1,81 @@
-PRODUCT = hello
-PLATFORMS = coco apple2 atari c64 adam msdos msxrom
+#################################################################
+# THIS is the ONLY Makefile that should be modified.            #
+#                                                               #
+# Do NOT customize files in /makefiles                          #
+#                                                               #
+# Read makefiles/README.md for more information                 #
+#################################################################
 
-# You can run 'make <platform>' to build for a specific platform,
-# or 'make <platform>/<target>' for a platform-specific target.
-# Example shortcuts:
-#   make coco        → build for coco
-#   make apple2/disk → build the 'disk' target for apple2
+PRODUCT = fbs
+PLATFORMS = coco
+#PLATFORMS = coco apple2 atari c64 adam msdos msxrom # TODO
+
+# Run 'make <platform>' to build for a specific platform,
 
 # SRC_DIRS may use the literal %PLATFORM% token.
 # It expands to the chosen PLATFORM plus any of its combos.
 SRC_DIRS = src src/%PLATFORM%
 
-# FUJINET_LIB can be
-# - a version number such as 4.7.6
-# - a directory which contains the libs for each platform
-# - a zip file with an archived fujinet-lib
-# - a URL to a git repo
-# - empty which will use whatever is the latest
-# - undefined, no fujinet-lib will be used
+# FUJINET_LIB - specify version such as 4.7.6, or leave empty for latest
 FUJINET_LIB = 
 
-# Define extra dirs ("combos") that expand with a platform.
-# Format: platform+=combo1,combo2
-PLATFORM_COMBOS = \
-  c64+=commodore \
-  atarixe+=atari \
-  msxrom+=msx \
-  msxdos+=msx
+#################################################################
+## Compiler / Linker flags                                     ##
+#################################################################
 
+# COCO (CMOC)
+# WARNING: Only works with cmoc 0.1.88 - 0.1.96 causes glitches with standard optimizations (-O2)
+CFLAGS_EXTRA_COCO = \
+	-I src/include \
+	-fomit-frame-pointer \
+	--no-relocate
+
+LDFLAGS_EXTRA_COCO = --limit=7B00 --org=2800
+# Load sooner if space is needed.
+
+#################################################################
+## PRE BUILD STEPS                                             ##
+#################################################################
+
+# Delete charset objects so every build gets the latest charset
+# from /support/[platform]/charset.fnt without needing to clean. 
+coco/r2r:
+	rm -f build/coco/charset.o
+
+
+#################################################################
+# Include MekkoGX makefile system (Make Gen-X)
 include makefiles/toplevel-rules.mk
+#################################################################
 
-# If you need to add extra platform-specific steps, do it below:
-#   coco/r2r:: coco/custom-step1
-#   coco/r2r:: coco/custom-step2
-# or
-#   apple2/disk: apple2/custom-step1 apple2/custom-step2
+
+#################################################################
+## POST BUILD STEPS                                            ##
+#################################################################
+
+## Show executable size
+$(PLATFORM)/disk-post::
+	@echo ........................................................................ ;ls -l $(EXECUTABLE);echo ........................................................................
+
+coco/disk-post::
+#	Copy to fujinet-pc SD drive. On first run, mount that drive for future runs
+	cp $(DISK) ~/Documents/fujinetpc-coco/SD
+
+#   Uncomment to autoount the disk in FujiNet-PC (assume's host 1 is SD)
+	curl -s "http://localhost:8000/browse/host/1/$(PRODUCT).dsk?action=newmount&slot=1&mode=r" >/dev/null
+	curl -s "http://localhost:8000/mount?mountall=1&redirect=1" >/dev/null
+
+
+#################################################################
+## EMULATORS                                                   ##
+#################################################################
+test:
+# 	Fast speed: -ui_active and -nothrottle starts the emulator in fast mode to quickly load the app. I then throttle it to 100% speed with a hotkey.
+	cd ~/mame_coco;mame coco -ui_active -nothrottle -window -nomaximize -resolution 1200x1024 -autoboot_delay 2 -nounevenstretch  -autoboot_command "runm\"$(PRODUCT)\n"
+#	cd ~/mame_coco;mame coco3 -ui_active -nothrottle -window -nomaximize -resolution 1300x1024 -autoboot_delay 2 -nounevenstretch  -autoboot_command "runm\"$(PRODUCT)\n"
+# Start normal speed
+#	cd ~/mame_coco;mame coco -ui_active -throttle -window -nomaximize -resolution 1200x1024 -autoboot_delay 2 -nounevenstretch  -autoboot_command "runm\"fbs\n"
+
+# Reset FujiNet-PC
+reset-fn:
+	curl http://localhost:8000/restart >/dev/null

@@ -1,0 +1,391 @@
+/*
+  Graphics functionality
+*/
+
+#include "hires.h"
+#include <peekpoke.h>
+#include <string.h>
+#include "../platform-specific/graphics.h"
+#include "../platform-specific/sound.h"
+#include "../misc.h"
+#include <coco.h>
+
+extern unsigned char charset[];
+#define OFFSET_Y 0
+
+#define ROP_CPY 0xff
+
+// Mode 4
+#define ROP_BLUE 0b10101010
+#define ROP_ORANGE 0b10101010
+#define BOX_SIDE 0b111100
+
+#define LEGEND_X 24
+
+extern char lastKey;
+int8_t highlightX = -1;
+bool inBorderScreen = false;
+uint8_t box_color = 0xff;
+uint16_t quadrant_offset[] = {
+    32 * 8 * 12 + 1,
+    32 * 8 * 1 + 1,
+    32 * 8 * 1 + 12,
+    32 * 8 * 12 + 12};
+
+// interrupt void resetFlagOnVsync(void)
+// {
+//     asm
+//         {
+//         lda     $FF03 // check for 60 Hz interrupt
+//         lbpl    irqISR_end // return if 63.5 us interrupt
+//         lda     $FF02 // reset PIA0, port B interrupt flag
+//         }
+
+//     // Do something in C.
+//     *(uint8_t *)0x9FF = 1;
+//     asm
+//     {
+// irqISR_end:
+//     }
+// }
+
+void initGraphics()
+{
+    // disableInterrupts();
+    // setISR(0xFFF8, irqISR);
+    // enableInterrupts();
+
+    initCoCoSupport();
+
+    // disableInterrupts();
+    // unsigned char *irqVector = *(unsigned char **)0xFFF8;
+    // *irqVector = 0x7E; // extended JMP extension
+    // *(void **)(irqVector + 1) = (void *)resetFlagOnVsync;
+    // enableInterrupts();
+
+    // if (isCoCo3) {  }
+
+    pmode(3, SCREEN);
+    pcls(0);
+    screen(1, 0);
+}
+
+bool saveScreenBuffer()
+{
+    // No room on CoCo 32K for second page
+    return false;
+}
+
+void restoreScreenBuffer()
+{
+    // No-op on CoCo
+}
+
+void drawText(unsigned char x, unsigned char y, const char *s)
+{
+    char c;
+
+    y = y * 8 - OFFSET_Y;
+
+    while (c = *s++)
+    {
+        if (c >= 97 && c <= 122)
+            c -= 32;
+        hires_putc(x++, y, ROP_CPY, c);
+    }
+}
+
+void drawChar(unsigned char x, unsigned char y, char c, unsigned char alt)
+{
+    if (c >= 97 && c <= 122)
+        c -= 32;
+    hires_putc(x, y * 8 - OFFSET_Y, alt ? ROP_BLUE : ROP_CPY, c);
+}
+
+void drawTextAlt(unsigned char x, unsigned char y, const char *s)
+{
+    char c;
+    uint8_t rop;
+
+    y = y * 8 - OFFSET_Y;
+
+    while (c = *s++)
+    {
+        if (c < 65 || c > 90)
+        {
+            rop = ROP_BLUE;
+        }
+        else
+        {
+            rop = ROP_CPY;
+        }
+
+        if (c >= 97 && c <= 122)
+            c -= 32;
+        hires_putc(x++, y, rop, c);
+    }
+}
+
+void resetScreen()
+{
+    pcls(0);
+}
+
+void drawLegendShip(uint8_t x, uint8_t y, uint8_t size, uint8_t status)
+{
+    uint8_t i, c = 0x0C;
+    if ((y - 1) % 6 == 0)
+    {
+        y = y * 8 + 1;
+    }
+    else
+    {
+        y = ((y - 1) / 6 * 6) * 8 + 3 + (y % 6) * 6;
+    }
+    for (i = 0; i < size; i++)
+    {
+        if (i == size - 1)
+            c = 0x0E;
+        hires_Draw(x++, y, 1, 6, ROP_CPY, &charset[(uint16_t)(c + 3 * status) << 3]);
+        c = 0x0D;
+    }
+}
+
+void drawGamefieldCursor(uint8_t quadrant, uint8_t x, uint8_t y, uint8_t *gamefield, uint8_t blink)
+{
+    uint8_t *src, *dest = SCREEN + quadrant_offset[quadrant] + (uint16_t)y * 256 + x;
+    uint8_t j, c = gamefield[y * 10 + x];
+
+    if (blink)
+    {
+        c = c * 2 + 5 + blink;
+    }
+    else
+    {
+        c += 0x18;
+    }
+    src = &charset[(uint16_t)c << 3];
+
+    for (j = 0; j < 8; ++j)
+    {
+        *dest = *src++;
+        dest += 32;
+    }
+}
+
+uint8_t *srcBlank = &charset[(uint16_t)0x18 << 3];
+uint8_t *srcHit = &charset[(uint16_t)0x19 << 3];
+uint8_t *srcMiss = &charset[(uint16_t)0x1A << 3];
+uint8_t *srcHit2 = &charset[(uint16_t)0x1C << 3];
+
+// Updates the gamefield display at attackPos
+void drawGamefieldUpdate(uint8_t quadrant, uint8_t *gamefield, uint8_t attackPos, uint8_t blink)
+{
+    uint8_t *src, *dest = SCREEN + quadrant_offset[quadrant] + (uint16_t)(attackPos / 10) * 256 + (attackPos % 10);
+    uint8_t j, c = gamefield[attackPos];
+
+    if (c == FIELD_ATTACK)
+    {
+        src = blink ? srcHit2 : srcHit;
+    }
+    else if (c == FIELD_MISS)
+    {
+        src = srcMiss;
+    }
+    else
+    {
+        return;
+    }
+
+    for (j = 0; j < 8; ++j)
+    {
+        *dest = *src++;
+        dest += 32;
+    }
+}
+
+void drawGamefield(uint8_t quadrant, uint8_t *field)
+{
+    uint8_t *dest = SCREEN + quadrant_offset[quadrant];
+    uint8_t y, x, j;
+    uint8_t *src;
+
+    // 13564
+
+    for (y = 0; y < 10; ++y)
+    {
+        for (x = 0; x < 10; ++x)
+        {
+            if (*field)
+            {
+                src = *field == 1 ? srcHit : srcMiss;
+                for (j = 0; j < 8; ++j)
+                {
+                    *dest = *src++;
+                    dest += 32;
+                }
+                dest -= 256;
+            }
+            field++;
+            dest++;
+        }
+
+        dest += 246;
+    }
+}
+
+void drawShip(uint8_t size, uint8_t pos, bool hide)
+{
+    uint8_t x, y, i, j, c = 0x12, delta = 0;
+    uint8_t *src;
+    // 100 bytes added for speed improvements
+    if (pos > 99)
+    {
+        delta = 1; // 1=vertical, 0=horizontal
+        pos -= 100;
+        c = 0x17;
+    }
+
+    x = (pos % 10) + 1;
+    y = ((pos / 10) + 12) * 8;
+
+    if (hide)
+    {
+        if (!delta)
+            hires_Mask(x, y, size, 8, 0b10101010);
+        else
+            hires_Mask(x, y, 1, size * 8, 0b10101010);
+        return;
+    }
+
+    uint8_t *dest = SCREEN + (uint16_t)y * 32 + x;
+
+    for (i = 0; i < size; i++)
+    {
+        // hires_putc(x, y, ROP_CPY, c);
+        // Faster version of above
+        src = &charset[(uint16_t)c << 3];
+        for (j = 0; j < 8; ++j)
+        {
+            *dest = *src++;
+            dest += 32;
+        }
+        if (delta)
+        {
+            c = 0x16;
+            if (i == size - 2)
+                c = 0x15;
+        }
+        else
+        {
+            dest -= 255;
+            c = 0x13;
+            if (i == size - 2)
+                c = 0x14;
+        }
+    }
+}
+
+void drawIcon(unsigned char x, unsigned char y, unsigned char icon)
+{
+    hires_putc(x, y * 8, ROP_CPY, icon);
+}
+
+void drawClock(unsigned char x, unsigned char y)
+{
+    hires_putcc(x, y * 8, ROP_CPY, 0x2526);
+}
+
+void drawConnectionIcon(unsigned char x, unsigned char y)
+{
+    hires_putcc(x, y * 8, ROP_CPY, 0x1e1f);
+}
+
+void drawSpace(unsigned char x, unsigned char y, unsigned char w)
+{
+    hires_Mask(x, y * 8, w, 8, 0);
+}
+
+void drawBoard()
+{
+    // Corners
+    hires_putc(0, 0, ROP_CPY, 0x5C);
+    hires_putc(22, 0, ROP_CPY, 0x5D);
+    hires_putc(0, 8 * 22, ROP_CPY, 0x5E);
+    hires_putc(22, 8 * 22, ROP_CPY, 0x5F);
+
+    // Blue background
+    hires_Mask(1, 8, 21, 8 * 22, 0b10101010);
+
+    // Middle lines
+    hires_Draw(1, 8 * 11, 21, 8, ROP_CPY, &charset[0x29 << 3]);
+    hires_Draw(11, 8, 1, 8 * 21, ROP_CPY, &charset[0x28 << 3]);
+
+    // Center cross
+    hires_putc(11, 8 * 11, ROP_CPY, 0x5B);
+
+    // Edges lines
+    hires_Draw(1, 0, 21, 8, ROP_CPY, &charset[0x29 << 3]);
+    hires_Draw(1, 8 * 22, 21, 8, ROP_CPY, &charset[0x29 << 3]);
+    hires_Draw(0, 8, 1, 8 * 21, ROP_CPY, &charset[0x28 << 3]);
+    hires_Draw(22, 8, 1, 8 * 21, ROP_CPY, &charset[0x28 << 3]);
+}
+
+void drawLine(unsigned char x, unsigned char y, unsigned char w)
+{
+    if (y == HEIGHT)
+    {
+        y = 191;
+    }
+    else
+    {
+        y = y * 8 - OFFSET_Y + 1;
+    }
+    hires_Mask(x, y, w, 2, ROP_ORANGE);
+}
+
+void drawBox(unsigned char x, unsigned char y, unsigned char w, unsigned char h)
+{
+    y = y * 8 + 1;
+
+    // Top Corners
+    hires_putc(x, y, box_color, 0x3b);
+    hires_putc(x + w + 1, y, box_color, 0x3c);
+
+    // Top/bottom lines
+    // hires_Mask(x+1,y+3,w,2, box_color);
+    // hires_Mask(x+1,y+(h+1)*8+2,w,2, box_color);
+
+    // Sides
+    //   for(i=0;i<h;++i) {
+    //     y+=8;
+    //     hires_putc(x,y,box_color, 0x3f);
+    //     hires_putc(x+w+1,y,box_color,0x40);
+    //   }
+
+    y += 8 * (h - 1);
+    // Bottom Corners
+    hires_putc(x, y + 14, box_color, 0x3d);
+    hires_putc(x + w + 1, y + 14, box_color, 0x3e);
+}
+
+void resetGraphics()
+{
+    pmode(0, 0x400);
+    pcls(0x60);
+    screen(0, 0);
+
+    // Future - mount and start Lobby
+}
+
+void waitvsync()
+{
+    uint16_t i = getTimer();
+    while (i == getTimer())
+        ;
+}
+
+void drawBlank(unsigned char x, unsigned char y)
+{
+    hires_putc(x, y * 8 - OFFSET_Y, ROP_CPY, 0x20);
+}

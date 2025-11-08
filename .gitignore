@@ -11,6 +11,7 @@ r2r/
 *.atr
 *.exe
 *.com
+*.bin
 
 *~
 *.orig
