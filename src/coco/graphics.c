@@ -352,7 +352,7 @@ void drawSpace(unsigned char x, unsigned char y, unsigned char w)
 
 void drawBoard(uint8_t playerCount)
 {
-    uint8_t i, x, y, ix, ox, left = 1, fy, eh, drawEdge, drawX, drawCorner;
+    uint8_t i, x, y, ix, ox, left = 1, fy, eh, drawEdge, drawX, drawCorner, edgeSkip;
 
     uint16_t pos;
     // Center layout
@@ -435,18 +435,23 @@ void drawBoard(uint8_t playerCount)
 
         // Blue gamefield
         hires_Mask(x, y, 10, 80, ROP_BLUE);
-
-        // Far edge
-        if (i)
+        edgeSkip = 0;
+        if (playerCount == 1)
         {
-            if (i != 2)
+            fy += 5;
+            edgeSkip = 4;
+        }
+        // Far edge
+        if (i || edgeSkip)
+        {
+            if (i != 2 && !edgeSkip)
                 eh = 8;
             else
                 eh = 3;
 
-            hires_Draw(x - 1, fy, 1, eh, ROP_CPY, &charset[(uint16_t)0x02 << 3]);
-            hires_Draw(x + 10, fy, 1, eh, ROP_CPY, &charset[(uint16_t)0x03 << 3]);
-            hires_Draw(x, fy, 10, eh, ROP_CPY, &charset[(uint16_t)0x29 << 3]);
+            hires_Draw(x - 1, fy, 1, eh, ROP_CPY, &charset[(uint16_t)0x02 << 3] + edgeSkip);
+            hires_Draw(x + 10, fy, 1, eh, ROP_CPY, &charset[(uint16_t)0x03 << 3] + edgeSkip);
+            hires_Draw(x, fy, 10, eh, ROP_CPY, &charset[(uint16_t)0x29 << 3] + edgeSkip);
         }
 
         // Ship drawer edges
@@ -494,11 +499,6 @@ void drawBox(unsigned char x, unsigned char y, unsigned char w, unsigned char h)
 
 void resetGraphics()
 {
-    pmode(0, 0x400);
-    pcls(0x60);
-    screen(0, 0);
-
-    // Future - mount and start Lobby
 }
 
 void waitvsync()

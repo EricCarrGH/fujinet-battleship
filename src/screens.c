@@ -362,16 +362,6 @@ void showTableSelectionScreen()
             strcpy(query, "?table=");
             strcat(query, clientState.tables.table[tableIndex].table);
 
-            // Append player name to query
-            strcat(query, "&player=");
-            strcat(query, playerName);
-
-            // Replace space with + for pshowWelcomScreenlayer name
-            i = (unsigned char)strlen(query);
-            while (--i)
-                if (query[i] == ' ')
-                    query[i] = '+';
-
             // Combine server endpoint and query for final base url
             strcpy(tempBuffer, serverEndpoint);
             strcat(tempBuffer, query);
@@ -383,6 +373,16 @@ void showTableSelectionScreen()
 
     centerTextAlt(17, "connecting to server");
     progressAnim(19);
+
+    // Append player name to query
+    strcat(query, "&player=");
+    strcat(query, playerName);
+
+    // Replace space with + for pshowWelcomScreenlayer name
+    i = (unsigned char)strlen(query);
+    while (--i)
+        if (query[i] == ' ')
+            query[i] = '+';
 
     // Reset the game state
     clearRenderState();

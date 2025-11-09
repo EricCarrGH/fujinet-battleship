@@ -56,8 +56,9 @@ void renderLobby()
     static uint8_t c = 0;
     uint8_t i, len;
 
-    if (clientState.game.status != state.prevStatus)
+    if (clientState.game.status != state.prevStatus || state.drawBoard)
     {
+        state.drawBoard = false;
         resetScreen();
 
         // Round 0 - Ready Up screen
@@ -65,15 +66,15 @@ void renderLobby()
         centerText(6, clientState.lobby.serverName);
 
         drawLine(READY_LEFT, 7, 16);
-        centerTextAlt(18, "press " ESCAPE " for menu");
-        centerTextAlt(HEIGHT - 1, "press TRIGGER/SPACE to toggle");
+        centerTextAlt(HEIGHT - 4, "press " ESCAPE " for menu");
+        centerTextAlt(HEIGHT - 1, "press TRIGGER/SPACE when ready");
 
         // Reset ship placement ahead of next screen
         memset(shipPlacements, 0, sizeof(shipPlacements));
         shipPlaceIndex = 0;
     }
 
-    centerTextWide(HEIGHT - 3, clientState.lobby.prompt);
+    centerTextWide(HEIGHT - 8, clientState.lobby.prompt);
 
     if (clientState.lobby.prompt[0] == 's')
     {
@@ -141,6 +142,7 @@ void handleShipPlacement()
     {
         size = shipSize[shipPlaceIndex];
         // Randomly select new location
+
         while (1)
         {
             pos = getRandomNumber(200);
@@ -280,7 +282,7 @@ void renderGameboard()
     uint8_t i, j, jj, x, y, dir, pos, size, playedSound, skipAnim = false;
 
     // Redraw the entire board when placing ships back to round 0 (ready up)
-    redraw = clientState.game.status != state.prevStatus && (clientState.game.status == STATE_INVALID || clientState.game.status == STATUS_PLACE_SHIPS);
+    redraw = clientState.game.status != state.prevStatus && (clientState.game.status == STATE_INVALID || clientState.game.status == STATUS_PLACE_SHIPS || state.prevStatus == STATUS_PLACE_SHIPS);
 
     // Clear screen and draw initial backdrop
     if (redraw || state.drawBoard)
@@ -289,7 +291,12 @@ void renderGameboard()
         redraw = true;
         skipAnim = true;
         resetScreen();
-        drawBoard(clientState.game.playerCount);
+        drawBoard(clientState.game.status == STATUS_PLACE_SHIPS ? 1 : clientState.game.playerCount);
+        if (clientState.game.status == STATUS_PLACE_SHIPS)
+        {
+            centerText(5, "place your five ships");
+            centerTextAlt(7, "press R to rotate");
+        }
         if (clientState.game.status >= STATUS_GAMESTART)
         {
             // Draw player's ships
@@ -392,9 +399,7 @@ void renderGameboard()
             memcpy(state.shipsLeft[i], clientState.game.players[i].shipsLeft, 5);
         }
 
-        // centerTextWide(HEIGHT - 1, clientState.game.prompt);
-
-        for (i = 0; i < clientState.game.playerCount; i++)
+               for (i = 0; i < clientState.game.playerCount; i++)
         {
             // Draw player name
             drawPlayerName(i, i == 0 && clientState.game.playerStatus != PLAYER_STATUS_VIEWING ? "you" : clientState.game.players[i].name, i == clientState.game.activePlayer);
@@ -432,6 +437,12 @@ void renderGameboard()
                 drawShip(shipSize[i], clientState.game.myShips[i], 0);
             }
         }
+
+        if (clientState.game.status == STATUS_PLACE_SHIPS)
+        {
+            centerTextWide(5, clientState.game.prompt);
+            centerTextAlt(7, "                   ");
+        }
     }
     pause(30);
     // cgetc();
@@ -456,7 +467,7 @@ bool testShip(uint8_t shipSize, uint8_t pos)
     for (i = 0; i < shipSize; i++)
     {
         // if crossed boundary, return false
-        if (tempBuffer[pos % 100] || pos > 199 || (i > 0 && pos < 100 && pos % 10 == 0))
+        if (tempBuffer[pos % 100] || pos > 199 || (i > 0 && pos % 10 == 0))
             return false;
 
         pos += (pos >= 100) ? 10 : 1;
@@ -479,7 +490,7 @@ void processInput()
     else if (clientState.game.playerStatus != PLAYER_STATUS_VIEWING)
     {
         // Toggle readiness if waiting to start game
-        if (clientState.game.status == STATUS_LOBBY && input.trigger)
+        if (clientState.game.status == STATUS_LOBBY && input.trigger && clientState.lobby.playerStatus != PLAYER_STATUS_READY)
         {
             clientState.lobby.playerStatus = PLAYER_STATUS_READY; // clientState.lobby.playerStatus ? PLAYER_STATUS_DEFAULT : PLAYER_STATUS_READY;
             clientState.lobby.players[0].ready = clientState.lobby.playerStatus;
