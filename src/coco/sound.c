@@ -130,6 +130,9 @@ void soundMiss()
     uint16_t i, j;
     uint8_t c;
 
+    tone(50, 0, 0);
+    tone(60, 0, 0);
+    tone(70, 0, 0);
     // Enable 6 bit dac
     // *(uint8_t *)0xFF23 = 0x3F;
 
@@ -164,20 +167,24 @@ void soundInvalid()
 
 void soundAttack()
 {
-    uint16_t i;
-    uint8_t c;
+    // uint16_t i;
+    // uint8_t c;
 
-    // Enable 6 bit dac
-    *(uint8_t *)0xFF23 = 0x3F;
+    // // Enable 6 bit dac
+    // *(uint8_t *)0xFF23 = 0x3F;
 
-    for (i = 240; i > 70; --i)
-    {
-        c = rand() % i;
-        *(uint8_t *)0xFF20 = c;
-        *(uint8_t *)0xFF20 = (c & c) - 1;
-        *(uint8_t *)0xFF20 = (c & c) + 1;
-    }
-    *(uint8_t *)0xFF20 = 0;
+    // for (i = 240; i > 70; --i)
+    // {
+    //     c = rand() % i;
+    //     *(uint8_t *)0xFF20 = c;
+    //     *(uint8_t *)0xFF20 = (c & c) - 1;
+    //     *(uint8_t *)0xFF20 = (c & c) + 1;
+    // }
+    // *(uint8_t *)0xFF20 = 0;
+
+    uint8_t i;
+    for (i = 100; i < 250; i -= 4)
+        tone(i, 0, 0);
 }
 
 void soundHit()

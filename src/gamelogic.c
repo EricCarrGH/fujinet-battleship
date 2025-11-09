@@ -78,7 +78,10 @@ void renderLobby()
     if (clientState.lobby.prompt[0] == 's')
     {
         if (state.countdownStarted)
+        {
             soundTick();
+            pause(30);
+        }
         else
         {
             soundJoinGame();
@@ -259,7 +262,7 @@ void renderGameboard()
     uint8_t i, j, jj, x, y, dir, pos, size, playedSound, skipAnim = false;
 
     // Redraw the entire board when placing ships back to round 0 (ready up)
-    redraw = clientState.game.status != state.prevStatus && (clientState.game.status == 99 || clientState.game.status == STATUS_PLACE_SHIPS);
+    redraw = clientState.game.status != state.prevStatus && (clientState.game.status == STATE_INVALID || clientState.game.status == STATUS_PLACE_SHIPS);
 
     // Clear screen and draw initial backdrop
     if (redraw || state.drawBoard)
@@ -327,22 +330,26 @@ void renderGameboard()
                         continue;
 
                     drawGamefieldUpdate(i, clientState.game.players[i].gamefield, clientState.game.lastAttackPos, j & 1);
-                    if (!playedSound && clientState.game.status == STATUS_HIT && clientState.game.players[i].gamefield[clientState.game.lastAttackPos] == FIELD_ATTACK)
+                    if (!playedSound)
                     {
-                        soundHit();
-                        playedSound = 1;
+                        if (clientState.game.status == STATUS_HIT && clientState.game.players[i].gamefield[clientState.game.lastAttackPos] == FIELD_ATTACK)
+                        {
+                            soundHit();
+                            playedSound = 1;
+                        }
+                        else if (clientState.game.status == STATUS_MISS)
+                        {
+                            soundMiss();
+                            playedSound = 1;
+                        }
                     }
                 }
-
                 pause(4);
             }
         }
 
         for (i = 0; i < clientState.game.playerCount; i++)
         {
-            // Draw player name
-            // drawText(LEGEND_X, i * 6, clientState.game.players[i].name);
-
             // Draw ships left indicators on legend
             for (j = 0; j < 5; j++)
             {
@@ -367,23 +374,29 @@ void renderGameboard()
             memcpy(state.shipsLeft[i], clientState.game.players[i].shipsLeft, 5);
         }
 
+        centerTextWide(HEIGHT - 1, clientState.game.prompt);
+
         for (i = 0; i < clientState.game.playerCount; i++)
         {
             // Draw player name
-            if (i == clientState.game.activePlayer)
-            {
-                drawIcon(LEGEND_X - 1, i * 6, ICON_ACTIVE_PLAYER);
-                drawText(LEGEND_X, i * 6, clientState.game.players[i].name);
-            }
-            else
-            {
-                drawBlank(LEGEND_X - 1, i * 6);
-                drawTextAlt(LEGEND_X, i * 6, clientState.game.players[i].name);
-            }
+            drawPlayerName(i, i == 0 && clientState.game.playerStatus != PLAYER_STATUS_VIEWING ? "you" : clientState.game.players[i].name, i == clientState.game.activePlayer);
+        }
+
+        // Blink active player
+        if (clientState.game.activePlayer > 0)
+        {
+            pause(15);
+            drawPlayerName(clientState.game.activePlayer, clientState.game.players[clientState.game.activePlayer].name, false);
+
+            pause(15);
+            drawPlayerName(clientState.game.activePlayer, clientState.game.players[clientState.game.activePlayer].name, true);
+            pause(15);
         }
     }
-
-    centerTextWide(HEIGHT - 1, clientState.game.prompt);
+    else
+    {
+        centerTextWide(HEIGHT - 1, clientState.game.prompt);
+    }
 
     // Draw ships that have been placed already
     if (clientState.game.status == STATUS_PLACE_SHIPS)
@@ -499,7 +512,8 @@ void waitOnPlayerMove()
         // Draw cursor
         for (i = 1; i < clientState.game.playerCount; i++)
         {
-            drawGamefieldCursor(i, posX, posY, clientState.game.players[i].gamefield, frames / 10);
+            if (clientState.game.players[i].playerStatus == PLAYER_STATUS_DEFAULT)
+                drawGamefieldCursor(i, posX, posY, clientState.game.players[i].gamefield, frames / 10);
         }
 
         if (moved)
@@ -530,7 +544,8 @@ void waitOnPlayerMove()
         {
             for (i = 1; i < clientState.game.playerCount; i++)
             {
-                drawGamefieldCursor(i, posX, posY, clientState.game.players[i].gamefield, 0);
+                if (clientState.game.players[i].playerStatus == PLAYER_STATUS_DEFAULT)
+                    drawGamefieldCursor(i, posX, posY, clientState.game.players[i].gamefield, 0);
             }
             posX = (posX + 10 + input.dirX) % 10;
             posY = (posY + 10 + input.dirY) % 10;
@@ -575,7 +590,7 @@ uint8_t prevCursorPos;
 // Invalidate state variables that will trigger re-rendering of screen items on the next cycle
 void clearRenderState()
 {
-    state.prevActivePlayer = state.prevStatus = 99;
+    state.prevActivePlayer = state.prevStatus = STATE_INVALID;
     state.prevPlayerCount = 0;
     state.drawBoard = true;
 }

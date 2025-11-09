@@ -6,8 +6,8 @@
 #include "../platform-specific/sound.h"
 #include "hires.h"
 
-static char sprite[8];
 extern uint8_t charset[];
+uint8_t background = 0;
 
 /*-----------------------------------------------------------------------*/
 void hires_putc(uint8_t x, uint8_t y, uint8_t rop, uint8_t c)
@@ -37,10 +37,20 @@ void hires_Draw(uint8_t x, uint8_t y, uint8_t xlen, uint8_t ylen, uint8_t rop, c
 {
     uint8_t *pos = SCREEN + (uint16_t)y * 32 + x;
     uint8_t c;
-
-    for (c = 0; c < ylen; ++c)
+    if (background)
     {
-        memset(pos, *(src + (c % 8)) & rop, xlen);
-        pos += 32;
+        for (c = 0; c < ylen; ++c)
+        {
+            memset(pos, (background ^ *(src + (c % 8))) | (*(src + (c % 8)) & rop), xlen);
+            pos += 32;
+        }
+    }
+    else
+    {
+        for (c = 0; c < ylen; ++c)
+        {
+            memset(pos, (*(src + (c % 8)) & rop), xlen);
+            pos += 32;
+        }
     }
 }

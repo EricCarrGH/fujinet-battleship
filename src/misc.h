@@ -31,6 +31,9 @@
 #define STATUS_SUNK 13
 #define STATUS_GAMEOVER 99
 
+// Set at start to force full redraw
+#define STATE_INVALID 200
+
 // Player status
 #define PLAYER_STATUS_DEFAULT 0
 #define PLAYER_STATUS_DEFEATED 1
