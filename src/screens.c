@@ -410,27 +410,27 @@ void showInGameMenuScreen()
 
         resetScreen();
         y = HEIGHT / 2 - 3;
-        drawBox(INGAME_MENU_X - 2, y - 2, 19, 9);
+        drawBox(INGAME_MENU_X - 2, y - 2, 19, 7);
 
         drawTextAlt(INGAME_MENU_X, y, "  Q: quit table");
         drawTextAlt(INGAME_MENU_X, y += 2, "  H: how to play");
         drawTextAlt(INGAME_MENU_X, y += 2, prefs.disableSound ? "  S: sound OFF" : "  S: sound ON");
-        drawTextAlt(INGAME_MENU_X, y += 2, ESC ": keep playing");
+        // drawTextAlt(INGAME_MENU_X, y += 2, "  C: keep playing");
+
+        centerTextAlt(HEIGHT - 1, "press TRIGGER/SPACE to close");
 
         // centerTextAlt(y + 6, tempBuffer);
         clearCommonInput();
         i = 1;
         while (i == 1)
         {
-
-            // Wait a short while before Escape can close this window
-            // to avoid double tap closing
-            if (wait < 40)
-            {
-                wait++;
-            }
             waitvsync();
             readCommonInput();
+            if (input.trigger)
+            {
+                i = 0;
+                break;
+            }
             switch (input.key)
             {
             case 's':
@@ -452,11 +452,6 @@ void showInGameMenuScreen()
             case 'h':
             case 'H':
                 showHelpScreen();
-            case KEY_ESCAPE:
-            case KEY_ESCAPE_ALT:
-                if (wait > 39)
-                    i = 0;
-                break;
             case 'q':
             case 'Q':
                 resetScreen();

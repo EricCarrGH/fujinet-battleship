@@ -28,7 +28,8 @@ FUJINET_LIB =
 CFLAGS_EXTRA_COCO = \
 	-I src/include \
 	-fomit-frame-pointer \
-	--no-relocate
+	--no-relocate \
+	--intermediate
 
 LDFLAGS_EXTRA_COCO = --limit=7B00 --org=2800
 # Load sooner if space is needed.

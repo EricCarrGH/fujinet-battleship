@@ -249,6 +249,15 @@ void handleShipPlacement()
                     soundInvalid();
                 }
             }
+
+            switch (input.key)
+            {
+            case KEY_ESCAPE:     // Esc
+            case KEY_ESCAPE_ALT: // Esc Alt
+                showInGameMenuScreen();
+                return;
+                break;
+            }
         }
     }
 
@@ -472,7 +481,8 @@ void processInput()
         // Toggle readiness if waiting to start game
         if (clientState.game.status == STATUS_LOBBY && input.trigger)
         {
-            clientState.lobby.playerStatus = clientState.lobby.playerStatus ? PLAYER_STATUS_DEFAULT : PLAYER_STATUS_READY;
+            clientState.lobby.playerStatus = PLAYER_STATUS_READY; // clientState.lobby.playerStatus ? PLAYER_STATUS_DEFAULT : PLAYER_STATUS_READY;
+            clientState.lobby.players[0].ready = clientState.lobby.playerStatus;
             renderLobby();
             if (clientState.lobby.playerStatus)
                 soundHit();
@@ -480,6 +490,7 @@ void processInput()
                 soundTick();
 
             apiCall("ready");
+            clearCommonInput();
             return;
         }
 

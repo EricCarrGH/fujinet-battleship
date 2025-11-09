@@ -5,7 +5,7 @@ static char lastKey = 0;
 
 unsigned char kbhit(void)
 {
-    return (char)(lastKey || (lastKey = inkey()));
+    return (char)(lastKey || (lastKey = inkey()) || (lastKey = inkey()));
 }
 
 char cgetc(void)
