@@ -28,8 +28,8 @@ void drawGamefield(uint8_t quadrant, uint8_t *field);
 void drawGamefieldUpdate(uint8_t quadrant, uint8_t *gamefield, uint8_t attackPos, uint8_t blink);
 void drawGamefieldCursor(uint8_t quadrant, uint8_t x, uint8_t y, uint8_t *gamefield, uint8_t blink);
 
-void drawClock(uint8_t x, uint8_t y);
-void drawConnectionIcon(uint8_t x, uint8_t y);
+void drawClock();
+void drawConnectionIcon(bool show);
 void drawBlank(uint8_t x, uint8_t y);
 void drawSpace(uint8_t x, uint8_t y, uint8_t w);
 void drawLine(uint8_t x, uint8_t y, uint8_t w);

@@ -332,19 +332,22 @@ void drawIcon(unsigned char x, unsigned char y, unsigned char icon)
     hires_putc(x, y * 8 + OFFSET_Y, ROP_CPY, icon);
 }
 
-void drawClock(unsigned char x, unsigned char y)
+void drawClock()
 {
-    hires_putcc(x, y * 8 + OFFSET_Y, ROP_CPY, 0x2526);
+    hires_putc(WIDTH - 1, HEIGHT * 8 - 8, ROP_CPY, 0x1D);
 }
 
-void drawConnectionIcon(unsigned char x, unsigned char y)
+void drawConnectionIcon(bool show)
 {
-    hires_putcc(x, y * 8 + OFFSET_Y, ROP_CPY, 0x1e1f);
+    hires_putcc(0, HEIGHT * 8 - 8, ROP_CPY, show ? 0x1e1f : 0x2020);
 }
 
 void drawSpace(unsigned char x, unsigned char y, unsigned char w)
 {
-    hires_Mask(x, y * 8 + OFFSET_Y, w, 8, 0);
+    y = y * 8 + OFFSET_Y;
+    if (y > 184)
+        y = 184;
+    hires_Mask(x, y, w, 8, 0);
 }
 
 void drawBoard(uint8_t playerCount)

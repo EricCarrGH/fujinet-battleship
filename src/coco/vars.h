@@ -11,7 +11,6 @@
 // Other platform specific constnats
 
 #define GAMEOVER_PROMPT_Y HEIGHT - 2
-#define QUERY_SUFFIX "&be=1" // Big Endian response for CoCo (68000)
 
 #undef ESCAPE
 #define ESCAPE "BREAK"

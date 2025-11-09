@@ -575,7 +575,7 @@ void waitOnPlayerMove()
 
                 itoa(i, tempBuffer + (i < 10), 10);
                 drawTextAlt(WIDTH - TIMER_WIDTH - 2, HEIGHT - 1, tempBuffer);
-                drawClock(WIDTH - TIMER_WIDTH, HEIGHT - 1);
+                drawClock();
                 soundTick();
             }
         }

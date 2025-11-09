@@ -161,7 +161,6 @@ void welcomeActionVerifyPlayerName()
 /// @brief Shows the Welcome Screen with Logo. Asks player's name
 void showWelcomeScreen()
 {
-
     // Load preferences
     loadPrefs();
 
@@ -233,8 +232,6 @@ void showTableSelectionScreen()
             {
                 table = &clientState.tables.table[i];
                 j = 9 + i * 2;
-                // drawBlank(LMAR-2,j);
-                // drawText(LMAR-2,j, " ");
                 drawTextAlt(LMAR, j, table->name);
                 drawTextAlt(RMAR - 5, j, table->players);
 

@@ -84,11 +84,11 @@ void main(void)
                 // After consequitive failures, let the player know we are experiencing technical difficulties
                 if (failedApiCalls > 1)
                 {
-                    drawConnectionIcon(0, HEIGHT - 1);
+                    drawConnectionIcon(true);
                     pause(30);
-                    drawSpace(0, HEIGHT - 1, 2);
+                    drawConnectionIcon(false);
                     pause(30);
-                    drawConnectionIcon(0, HEIGHT - 1);
+                    drawConnectionIcon(true);
                 }
                 break;
 
@@ -97,7 +97,7 @@ void main(void)
                 // Clear connection failure message
                 if (failedApiCalls > 1)
                 {
-                    drawSpace(0, HEIGHT - 1, 2);
+                    drawConnectionIcon(false);
                 }
                 failedApiCalls = 0;
                 processStateChange();
