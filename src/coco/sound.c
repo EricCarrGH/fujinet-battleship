@@ -183,7 +183,7 @@ void soundAttack()
     // *(uint8_t *)0xFF20 = 0;
 
     uint8_t i;
-    for (i = 100; i < 250; i -= 4)
+    for (i = 100; i < 250; i -= 5)
         tone(i, 0, 0);
 }
 

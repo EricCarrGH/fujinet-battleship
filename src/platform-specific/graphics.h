@@ -19,7 +19,6 @@ void resetScreen();
 void drawText(uint8_t x, uint8_t y, const char *s);
 void drawTextAlt(uint8_t x, uint8_t y, const char *s);
 
-void drawChar(uint8_t x, uint8_t y, char c, uint8_t alt);
 void drawIcon(uint8_t x, uint8_t y, uint8_t icon);
 
 void drawShip(uint8_t size, uint8_t pos, bool hide);

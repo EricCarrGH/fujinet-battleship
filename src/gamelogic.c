@@ -232,7 +232,16 @@ void handleShipPlacement()
                     placeShip(size, pos);
                     shipPlacements[shipPlaceIndex] = pos;
                     shipPlaceIndex++;
-                    soundPlaceShip();
+                    if (shipPlaceIndex < 5)
+                    {
+                        soundPlaceShip();
+                    }
+                    else
+                    {
+                        // Clear input for next ship
+                        soundSelect();
+                    }
+
                     break;
                 }
                 else
@@ -374,7 +383,7 @@ void renderGameboard()
             memcpy(state.shipsLeft[i], clientState.game.players[i].shipsLeft, 5);
         }
 
-        centerTextWide(HEIGHT - 1, clientState.game.prompt);
+        // centerTextWide(HEIGHT - 1, clientState.game.prompt);
 
         for (i = 0; i < clientState.game.playerCount; i++)
         {
@@ -393,7 +402,8 @@ void renderGameboard()
             pause(15);
         }
     }
-    else
+
+    if (clientState.game.status == STATUS_GAMEOVER)
     {
         centerTextWide(HEIGHT - 1, clientState.game.prompt);
     }

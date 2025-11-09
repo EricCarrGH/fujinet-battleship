@@ -11,7 +11,7 @@
 #include <coco.h>
 
 extern unsigned char charset[];
-#define OFFSET_Y 0
+#define OFFSET_Y 2
 
 #define ROP_CPY 0xff
 
@@ -29,10 +29,10 @@ int8_t highlightX = -1;
 bool inBorderScreen = false;
 uint8_t box_color = 0xff;
 uint16_t quadrant_offset[] = {
-    256U * 12 + 5,
-    256U * 1 + 5,
-    256U * 1 + 17,
-    256U * 12 + 17};
+    256U * 12 + 5 + 64,
+    256U * 1 + 5 + 64,
+    256U * 1 + 17 + 64,
+    256U * 12 + 17 + 64};
 
 // interrupt void resetFlagOnVsync(void)
 // {
@@ -87,33 +87,38 @@ void drawPlayerName(uint8_t player, const char *name, bool active)
 {
     uint8_t x, y;
     uint16_t pos = fieldX + quadrant_offset[player];
-    if (player == 0 || player == 3)
-    {
-        pos += 2816;
-    }
 
     x = pos % 32 + 1;
-    y = pos / 256 - 1;
+    y = pos / 32 - 9;
+
+    if (player == 0 || player == 3)
+    {
+        y += 89;
+    }
 
     background = ROP_YELLOW;
     if (active)
     {
-        hires_putc(x - 1, y * 8, ROP_CPY, 0x05);
-        drawText(x, y, name);
+        hires_putc(x - 1, y, ROP_CPY, 0x05);
+        drawTextAt(x, y, name);
     }
     else
     {
-        drawIcon(x - 1, y, 0x62);
-        drawTextAlt(x, y, name);
+        hires_putc(x - 1, y, ROP_CPY, 0x62);
+        drawTextAltAt(x, y, name);
     }
     background = 0;
 }
-
 void drawText(unsigned char x, unsigned char y, const char *s)
 {
+    y = y * 8 + OFFSET_Y;
+    if (y > 184)
+        y = 184;
+    drawTextAt(x, y, s);
+}
+void drawTextAt(unsigned char x, unsigned char y, const char *s)
+{
     char c;
-
-    y = y * 8;
 
     while (c = *s++)
     {
@@ -123,19 +128,18 @@ void drawText(unsigned char x, unsigned char y, const char *s)
     }
 }
 
-void drawChar(unsigned char x, unsigned char y, char c, unsigned char alt)
+void drawTextAlt(unsigned char x, unsigned char y, const char *s)
 {
-    if (c >= 97 && c <= 122)
-        c -= 32;
-    hires_putc(x, y * 8 - OFFSET_Y, alt ? ROP_BLUE : ROP_CPY, c);
+    y = y * 8 + OFFSET_Y;
+    if (y > 184)
+        y = 184;
+    drawTextAltAt(x, y, s);
 }
 
-void drawTextAlt(unsigned char x, unsigned char y, const char *s)
+void drawTextAltAt(unsigned char x, unsigned char y, const char *s)
 {
     char c;
     uint8_t rop;
-
-    y = y * 8 - OFFSET_Y;
 
     while (c = *s++)
     {
@@ -172,7 +176,7 @@ void drawLegendShip(uint8_t player, uint8_t index, uint8_t size, uint8_t status)
     {
         dest += 256 - 4;
     }
-    // 15684
+
     if (status)
     {
         drawShipInternal(SCREEN + dest, size, 1);
@@ -308,7 +312,7 @@ void drawShip(uint8_t size, uint8_t pos, bool hide)
     }
 
     x = (pos % 10) + fieldX + 5;
-    y = ((pos / 10) + 12) * 8;
+    y = ((pos / 10) + 12) * 8 + OFFSET_Y;
 
     if (hide)
     {
@@ -325,22 +329,22 @@ void drawShip(uint8_t size, uint8_t pos, bool hide)
 
 void drawIcon(unsigned char x, unsigned char y, unsigned char icon)
 {
-    hires_putc(x, y * 8, ROP_CPY, icon);
+    hires_putc(x, y * 8 + OFFSET_Y, ROP_CPY, icon);
 }
 
 void drawClock(unsigned char x, unsigned char y)
 {
-    hires_putcc(x, y * 8, ROP_CPY, 0x2526);
+    hires_putcc(x, y * 8 + OFFSET_Y, ROP_CPY, 0x2526);
 }
 
 void drawConnectionIcon(unsigned char x, unsigned char y)
 {
-    hires_putcc(x, y * 8, ROP_CPY, 0x1e1f);
+    hires_putcc(x, y * 8 + OFFSET_Y, ROP_CPY, 0x1e1f);
 }
 
 void drawSpace(unsigned char x, unsigned char y, unsigned char w)
 {
-    hires_Mask(x, y * 8, w, 8, 0);
+    hires_Mask(x, y * 8 + OFFSET_Y, w, 8, 0);
 }
 
 void drawBoard(uint8_t playerCount)
@@ -382,17 +386,37 @@ void drawBoard(uint8_t playerCount)
             hires_putc(x + 10, y - 8, ROP_CPY, 0x5D);
 
             // Name badge
-            hires_Mask(x, y - 8, 10, 8, 0b01010101);
+
+            // Fill
+            hires_Mask(x, y - 9, 10, 9, ROP_YELLOW);
+
+            // Border
+            hires_Mask(x, y - 10, 10, 1, ROP_BLUE);
+            hires_Mask(x - 1, y - 10, 1, 1, 0b00000010);
+            hires_Mask(x + 10, y - 10, 1, 1, 0b10000000);
+            hires_Mask(x - 1, y - 9, 1, 1, 0b001001);
+            hires_Mask(x + 10, y - 9, 1, 1, 0b01100000);
+
             fy = y + 80;
         }
         else
         {
             // Name badge corners
+
             hires_putc(x - 1, y + 80, ROP_CPY, 0x5E);
             hires_putc(x + 10, y + 80, ROP_CPY, 0x5F);
 
-            // Name badge
-            hires_Mask(x, y + 80, 10, 8, 0b01010101);
+            // Name fill
+            hires_Mask(x, y + 80, 10, 9, ROP_YELLOW);
+
+            // Border
+            hires_Mask(x - 1, y + 88, 1, 1, 0b001001);
+            hires_Mask(x + 10, y + 88, 1, 1, 0b01100000);
+
+            hires_Mask(x, y + 89, 10, 1, ROP_BLUE);
+            hires_Mask(x - 1, y + 89, 1, 1, 0b00000010);
+            hires_Mask(x + 10, y + 89, 1, 1, 0b10000000);
+
             fy = y - 8;
         }
 
@@ -436,20 +460,13 @@ void drawBoard(uint8_t playerCount)
 
 void drawLine(unsigned char x, unsigned char y, unsigned char w)
 {
-    if (y == HEIGHT)
-    {
-        y = 191;
-    }
-    else
-    {
-        y = y * 8 - OFFSET_Y + 1;
-    }
+    y = y * 8 + OFFSET_Y + 1;
     hires_Mask(x, y, w, 2, ROP_BLUE);
 }
 
 void drawBox(unsigned char x, unsigned char y, unsigned char w, unsigned char h)
 {
-    y = y * 8 + 1;
+    y = y * 8 + 1 + OFFSET_Y;
 
     // Top Corners
     hires_putc(x, y, box_color, 0x3b);
@@ -490,5 +507,5 @@ void waitvsync()
 
 void drawBlank(unsigned char x, unsigned char y)
 {
-    hires_putc(x, y * 8 - OFFSET_Y, ROP_CPY, 0x20);
+    hires_putc(x, y * 8 + OFFSET_Y, ROP_CPY, 0x20);
 }

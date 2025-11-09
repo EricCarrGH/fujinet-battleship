@@ -24,7 +24,6 @@ void soundGameDone();
 void soundTick();
 void soundCursor();
 void soundPlaceShip();
-void soundScore();
 void soundAttack();
 void soundInvalid();
 void soundHit();
