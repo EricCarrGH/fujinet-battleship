@@ -31,8 +31,7 @@ CFLAGS_EXTRA_COCO = \
 	--no-relocate \
 	--intermediate
 
-LDFLAGS_EXTRA_COCO = --limit=7B00 --org=2800
-# Load sooner if space is needed.
+LDFLAGS_EXTRA_COCO = --limit=7B00 --org=2800 # TODO if needed: Load earlier if more space is required
 
 #################################################################
 ## PRE BUILD STEPS                                             ##
@@ -60,11 +59,11 @@ $(PLATFORM)/disk-post::
 
 coco/disk-post::
 #	Copy to fujinet-pc SD drive. On first run, mount that drive for future runs
-	cp $(DISK) ~/Documents/fujinetpc-coco/SD
+#	cp $(DISK) ~/Documents/fujinetpc-coco/SD
 
-#   Uncomment to autoount the disk in FujiNet-PC (assume's host 1 is SD)
-	curl -s "http://localhost:8000/browse/host/1/$(PRODUCT).dsk?action=newmount&slot=1&mode=r" >/dev/null
-	curl -s "http://localhost:8000/mount?mountall=1&redirect=1" >/dev/null
+#   Mount the disk in FujiNet-PC (assumes host 1 is SD)
+#	curl -s "http://localhost:8000/browse/host/1/$(PRODUCT).dsk?action=newmount&slot=1&mode=r" >/dev/null
+#	curl -s "http://localhost:8000/mount?mountall=1&redirect=1" >/dev/null
 
 
 #################################################################
@@ -72,7 +71,7 @@ coco/disk-post::
 #################################################################
 test:
 # 	Fast speed: -ui_active and -nothrottle starts the emulator in fast mode to quickly load the app. I then throttle it to 100% speed with a hotkey.
-	cd ~/mame_coco;mame coco -ui_active -nothrottle -window -nomaximize -resolution 1200x1024 -autoboot_delay 2 -nounevenstretch  -autoboot_command "runm\"$(PRODUCT)\n"
+#	cd ~/mame_coco;mame coco -ui_active -nothrottle -window -nomaximize -resolution 1200x1024 -autoboot_delay 2 -nounevenstretch  -autoboot_command "runm\"$(PRODUCT)\n"
 #	cd ~/mame_coco;mame coco3 -ui_active -nothrottle -window -nomaximize -resolution 1300x1024 -autoboot_delay 2 -nounevenstretch  -autoboot_command "runm\"$(PRODUCT)\n"
 # Start normal speed
 #	cd ~/mame_coco;mame coco -ui_active -throttle -window -nomaximize -resolution 1200x1024 -autoboot_delay 2 -nounevenstretch  -autoboot_command "runm\"fbs\n"
